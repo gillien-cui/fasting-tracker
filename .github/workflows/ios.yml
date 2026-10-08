@@ -1,0 +1,30 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Builds the app for the iOS simulator (no signing) so a change that breaks iPhone fails before merge.
+  simulator-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Generates ios/ from app.json and the config plugins (it isn't committed).
+      - run: npx expo prebuild --platform ios
+      - run: |
+          set -o pipefail
+          xcodebuild -workspace ios/*.xcworkspace -scheme FastingTracker \
+            -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 50
