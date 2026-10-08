@@ -107,16 +107,25 @@ describe('Timer', () => {
     ).rejects.toThrow("The start can't be in the future.");
     expect((await app.active())?.startedAt).toBe(fast.startedAt);
   });
+
+  test('T7: a fast can start at a chosen earlier time, but not in the future', async () => {
+    const app = setup();
+    await expect(actions.startFast(app.deps, 960, new Date(at(10, 8, 12).getTime() + minutes(1)))).rejects.toThrow(
+      "The start can't be in the future.",
+    );
+    expect(await app.active()).toBeNull();
+    const fast = await actions.startFast(app.deps, 960, at(10, 8, 9, 30));
+    expect(fast.startedAt).toBe(at(10, 8, 9, 30).toISOString());
+  });
 });
 
 describe('Goals', () => {
   test.each([
-    ['13 h', 13 * 60],
     ['16 h', 16 * 60],
     ['18 h', 18 * 60],
-    ['20 h', 20 * 60],
-    ['24 h', 24 * 60],
+    ['22 h', 22 * 60],
     ['custom 15 h', 15 * 60],
+    ['custom 5 day', 5 * 24 * 60],
   ])('T8: a %s goal is saved on the fast and kept in history', async (_, goal) => {
     const app = setup(at(10, 7, 8));
     await actions.startFast(app.deps, goal);
@@ -133,10 +142,10 @@ describe('Goals', () => {
     expect((await app.active())?.goalMinutes).toBe(900);
   });
 
-  test('T8: goals of zero or over 72 h are refused', async () => {
+  test('T8: goals of zero or over 7 days are refused', async () => {
     const app = setup();
     await expect(actions.startFast(app.deps, 0)).rejects.toThrow(FastError);
-    await expect(actions.startFast(app.deps, 73 * 60)).rejects.toThrow(FastError);
+    await expect(actions.startFast(app.deps, 7 * 24 * 60 + 1)).rejects.toThrow(FastError);
     expect(await app.active()).toBeNull();
   });
 

@@ -5,7 +5,7 @@ import type { FastRepository } from './repository';
 /** A change the rules refuse, with a message fit to show the person. */
 export class FastError extends Error {}
 
-export const MAX_GOAL_MINUTES = 72 * 60;
+export const MAX_GOAL_MINUTES = 7 * 24 * 60;
 
 export type Deps = {
   repo: FastRepository;
@@ -17,7 +17,7 @@ const nowOf = (deps: Deps) => (deps.now ?? (() => new Date()))();
 
 export function goalError(goalMinutes: number): string | null {
   if (!Number.isInteger(goalMinutes) || goalMinutes <= 0) return 'Pick a goal longer than zero.';
-  if (goalMinutes > MAX_GOAL_MINUTES) return 'Goals can be at most 72 h.';
+  if (goalMinutes > MAX_GOAL_MINUTES) return 'Goals can be at most 7 days.';
   return null;
 }
 
@@ -30,6 +30,13 @@ export function timesError(start: Date, end: Date | null, now: Date): string | n
   return null;
 }
 
+/** The goal implied by moving the goal-reached time, or why that time isn't allowed. */
+export function goalFromReachedAt(start: Date, reachedAt: Date): { goalMinutes: number; error: string | null } {
+  const goalMinutes = Math.round((reachedAt.getTime() - start.getTime()) / 60000);
+  if (goalMinutes <= 0) return { goalMinutes, error: 'The goal has to be after the start.' };
+  return { goalMinutes, error: goalError(goalMinutes) };
+}
+
 function check(error: string | null): void {
   if (error) throw new FastError(error);
 }
@@ -38,14 +45,20 @@ async function findActive(repo: FastRepository): Promise<Fast | null> {
   return (await repo.getAll()).find((f) => f.status === 'active') ?? null;
 }
 
-/** Starts a fast with the given goal, or the default goal from Settings. Only one fast can run at a time. */
-export async function startFast(deps: Deps, goalMinutes?: number): Promise<Fast> {
+/**
+ * Starts a fast now, or at a chosen earlier time, with the given goal or the default goal from Settings.
+ * Only one fast can run at a time.
+ */
+export async function startFast(deps: Deps, goalMinutes?: number, startedAt?: Date): Promise<Fast> {
   if (await findActive(deps.repo)) throw new FastError('A fast is already running.');
   const goal = goalMinutes ?? (await deps.repo.getSettings()).defaultGoalMinutes;
+  const now = nowOf(deps);
+  const start = startedAt ?? now;
+  check(timesError(start, null, now));
   check(goalError(goal));
   const fast: Fast = {
     id: deps.newId(),
-    startedAt: nowOf(deps).toISOString(),
+    startedAt: start.toISOString(),
     endedAt: null,
     goalMinutes: goal,
     note: null,

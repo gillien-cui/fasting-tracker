@@ -6,7 +6,7 @@ import { useTheme } from '../lib/theme';
 
 type Props = { fasts: Fast[]; weekStartsOn: WeekStart };
 
-/** Month grid: filled days met the goal, outlined red days missed it. */
+/** Month grid: green days met the goal, red days missed it, today's date is bold. */
 export function MonthCalendar({ fasts, weekStartsOn }: Props) {
   const theme = useTheme();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
@@ -51,17 +51,24 @@ export function MonthCalendar({ fasts, weekStartsOn }: Props) {
                 style={[
                   styles.day,
                   result === 'met' && { backgroundColor: theme.goodSoft },
-                  result === 'missed' && { borderColor: theme.danger, borderWidth: 1.5 },
-                  today && { borderColor: theme.accent, borderWidth: 2 },
+                  result === 'missed' && { backgroundColor: theme.dangerSoft },
                 ]}
               >
-                <Text style={[styles.dayText, { color: inMonth ? theme.text : 'transparent' }]}>{format(d, 'd')}</Text>
+                <Text
+                  style={[
+                    styles.dayText,
+                    { color: inMonth ? theme.text : 'transparent' },
+                    today && { fontWeight: '800', textDecorationLine: 'underline' },
+                  ]}
+                >
+                  {format(d, 'd')}
+                </Text>
               </View>
             </View>
           );
         })}
       </View>
-      <Text style={[styles.key, { color: theme.muted }]}>Filled days met the goal; red outlines missed it.</Text>
+      <Text style={[styles.key, { color: theme.muted }]}>Green: goal met. Red: missed. Today is underlined.</Text>
     </View>
   );
 }
