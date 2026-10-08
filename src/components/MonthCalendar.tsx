@@ -6,7 +6,7 @@ import { useTheme } from '../lib/theme';
 
 type Props = { fasts: Fast[]; weekStartsOn: WeekStart };
 
-/** Month grid: green days met the goal, red days missed it, today's date is bold. */
+/** Month grid: filled days met the goal, red days missed it, today's date is underlined. */
 export function MonthCalendar({ fasts, weekStartsOn }: Props) {
   const theme = useTheme();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
@@ -68,7 +68,16 @@ export function MonthCalendar({ fasts, weekStartsOn }: Props) {
           );
         })}
       </View>
-      <Text style={[styles.key, { color: theme.muted }]}>Green: goal met. Red: missed. Today is underlined.</Text>
+      <View style={styles.keyRow}>
+        <View style={[styles.keySwatch, { backgroundColor: theme.goodSoft }]} />
+        <Text style={[styles.key, { color: theme.muted }]}>Goal met</Text>
+        <View style={[styles.keySwatch, { backgroundColor: theme.dangerSoft }]} />
+        <Text style={[styles.key, { color: theme.muted }]}>Missed</Text>
+        <Text style={[styles.key, { color: theme.muted, fontWeight: '800', textDecorationLine: 'underline' }]}>
+          {format(new Date(), 'd')}
+        </Text>
+        <Text style={[styles.key, { color: theme.muted }]}>Today</Text>
+      </View>
     </View>
   );
 }
@@ -83,5 +92,7 @@ const styles = StyleSheet.create({
   weekday: { fontSize: 12, fontWeight: '600' },
   day: { width: 34, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   dayText: { fontSize: 14 },
-  key: { fontSize: 12, textAlign: 'center' },
+  keyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  keySwatch: { width: 12, height: 12, borderRadius: 3, marginLeft: 6 },
+  key: { fontSize: 12 },
 });

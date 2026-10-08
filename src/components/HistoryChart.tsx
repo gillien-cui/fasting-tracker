@@ -11,6 +11,7 @@ const RANGES: { value: ChartRange; label: string }[] = [
 ];
 const HEIGHT = 130;
 const LABEL_SPACE = 2;
+const LABEL_WIDTH = 44;
 
 type Props = { fasts: Fast[]; goalMinutes: number };
 
@@ -28,7 +29,12 @@ export function HistoryChart({ fasts, goalMinutes }: Props) {
   const y = (minutes: number) => plot - (minutes / top) * plot;
   const slot = width / bars.length;
   const barWidth = Math.max(2, slot * (range === 'month' ? 0.6 : 0.55));
-  const showLabel = (i: number) => range !== 'month' || i % 5 === 4 || i === bars.length - 1;
+  const showLabel = (i: number) => range !== 'month' || (bars.length - 1 - i) % 7 === 0;
+  const labelLeft = (i: number) => {
+    const centered = i * slot + slot / 2 - LABEL_WIDTH / 2;
+    // Month labels are wide dates, so keep the first and last inside the card.
+    return range === 'month' ? Math.min(width - LABEL_WIDTH, Math.max(0, centered)) : centered;
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -94,11 +100,7 @@ export function HistoryChart({ fasts, goalMinutes }: Props) {
         {width > 0 &&
           bars.map((b, i) =>
             showLabel(i) ? (
-              <Text
-                key={b.key}
-                style={[styles.axis, { color: theme.muted, left: i * slot + slot / 2 - 15 }]}
-                numberOfLines={1}
-              >
+              <Text key={b.key} style={[styles.axis, { color: theme.muted, left: labelLeft(i) }]} numberOfLines={1}>
                 {b.label}
               </Text>
             ) : null,
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: -6 },
   subtitle: { fontSize: 12, flexShrink: 1 },
   labels: { height: 14, marginTop: -6 },
-  axis: { position: 'absolute', width: 30, textAlign: 'center', fontSize: 11 },
+  axis: { position: 'absolute', width: LABEL_WIDTH, textAlign: 'center', fontSize: 11 },
   segmented: { flexDirection: 'row', borderRadius: 10, padding: 3 },
   segment: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8 },
   segmentText: { fontSize: 13, fontWeight: '600' },

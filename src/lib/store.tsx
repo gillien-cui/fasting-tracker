@@ -7,6 +7,7 @@ import { createSqliteRepository } from './db';
 import type { Fast } from './fasts';
 import { requestPermission, syncSchedule } from './notifications';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { PaletteContext } from './theme';
 
 type Store = {
   loaded: boolean;
@@ -113,7 +114,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [loaded, all, active, settings, justEnded, dismissJustEnded, deps, reload]);
 
-  return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={store}>
+      <PaletteContext.Provider value={settings.theme}>{children}</PaletteContext.Provider>
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): Store {
