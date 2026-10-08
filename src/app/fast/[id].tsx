@@ -1,12 +1,12 @@
 import { subHours } from 'date-fns';
-import { randomUUID } from 'expo-crypto';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { DateTimeField } from '../../components/DateTimeField';
 import { GoalPicker } from '../../components/GoalPicker';
+import { timesError } from '../../lib/actions';
 import { confirm } from '../../lib/confirm';
-import { formatDuration, type Fast } from '../../lib/fasts';
+import { formatDuration } from '../../lib/fasts';
 import { useStore } from '../../lib/store';
 import { useTheme } from '../../lib/theme';
 
@@ -14,7 +14,7 @@ import { useTheme } from '../../lib/theme';
 export default function EditFastScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { fasts, settings, saveFast, deleteFast } = useStore();
+  const { fasts, settings, savePastFast, deleteFast } = useStore();
   const existing = id === 'new' ? undefined : fasts.find((f) => f.id === id && f.status === 'completed');
 
   const [end, setEnd] = useState(() => (existing ? new Date(existing.endedAt!) : new Date()));
@@ -34,28 +34,17 @@ export default function EditFastScreen() {
   }
 
   const minutes = (end.getTime() - start.getTime()) / 60000;
-  const error =
-    end <= start ? 'The end has to be after the start.' : end > new Date() ? "The end can't be in the future." : null;
+  const error = timesError(start, end, new Date());
 
   const onSave = async () => {
     if (error) return;
-    const fast: Fast = {
-      id: existing?.id ?? randomUUID(),
-      startedAt: start.toISOString(),
-      endedAt: end.toISOString(),
-      goalMinutes,
-      note: note.trim() || null,
-      status: 'completed',
-    };
-    await saveFast(fast);
-    router.back();
+    if (await savePastFast({ id: existing?.id, startedAt: start, endedAt: end, goalMinutes, note })) router.back();
   };
 
   const onDelete = async () => {
     if (!existing) return;
     if (await confirm('Delete this fast?', 'This removes it from your history.', 'Delete', true)) {
-      await deleteFast(existing.id);
-      router.back();
+      if (await deleteFast(existing.id)) router.back();
     }
   };
 

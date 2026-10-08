@@ -107,7 +107,7 @@ export default function TodayScreen() {
           value={start}
           maximumDate={now}
           clock24={settings.clock24}
-          onChange={(d) => updateActive({ startedAt: d.toISOString() })}
+          onChange={(d) => updateActive({ startedAt: d })}
         />
         <Text style={[styles.label, { color: theme.muted, marginTop: 8 }]}>Goal</Text>
         <GoalPicker value={active.goalMinutes} onChange={(m) => updateActive({ goalMinutes: m })} />

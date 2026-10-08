@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { DateTimeField } from '../components/DateTimeField';
+import { timesError } from '../lib/actions';
 import { formatDuration, goalReachedAt } from '../lib/fasts';
 import { useStore } from '../lib/store';
 import { useTheme } from '../lib/theme';
@@ -33,12 +34,11 @@ export default function EndFastScreen() {
   const start = new Date(active.startedAt);
   const suggested = fromReminder ? goalReachedAt(active) : now;
   const value = end ?? (suggested < now ? suggested : now);
-  const error = value <= start ? 'The end has to be after the start.' : null;
+  const error = timesError(start, value, now);
 
   const onSave = async () => {
     if (error) return;
-    await endFast(value);
-    router.dismissTo('/');
+    if (await endFast(value)) router.dismissTo('/');
   };
 
   return (

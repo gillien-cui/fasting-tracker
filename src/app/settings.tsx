@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { GoalPicker } from '../components/GoalPicker';
-import { exportCsv, pickCsv } from '../lib/backup';
+import { pickCsv, shareCsv } from '../lib/backup';
 import { confirm, notify } from '../lib/confirm';
 import { requestPermission } from '../lib/notifications';
 import { useStore } from '../lib/store';
@@ -63,7 +63,7 @@ function Row({
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { settings, updateSettings, fasts, importFasts, clearAll, active } = useStore();
+  const { settings, updateSettings, fasts, importCsv, exportCsv, clearAll, active } = useStore();
 
   const toggleNotification = async (key: 'goalNotification' | 'forgottenReminder', on: boolean) => {
     if (on && !(await requestPermission())) {
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
 
   const onExport = async () => {
     try {
-      await exportCsv(fasts);
+      await shareCsv(await exportCsv());
     } catch (err) {
       notify('Export failed', String(err));
     }
@@ -82,13 +82,14 @@ export default function SettingsScreen() {
 
   const onImport = async () => {
     try {
-      const result = await pickCsv();
+      const text = await pickCsv();
+      if (text === null) return;
+      const result = await importCsv(text);
       if (!result) return;
-      const count = await importFasts(result.fasts);
       const skipped = result.skipped ? ` ${result.skipped} rows couldn't be read and were skipped.` : '';
       notify(
         'Import finished',
-        `Imported ${count} fasts. Fasts already on this phone with the same id were updated.${skipped}`,
+        `Imported ${result.imported} fasts. Fasts already on this phone with the same id were updated.${skipped}`,
       );
     } catch (err) {
       notify('Import failed', err instanceof Error ? err.message : String(err));

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MAX_GOAL_MINUTES } from '../lib/actions';
 import { GOAL_PRESETS_HOURS } from '../lib/fasts';
 import { useTheme } from '../lib/theme';
 
-const MAX_HOURS = 72;
+const MAX_HOURS = MAX_GOAL_MINUTES / 60;
 
 type Props = { value: number; onChange: (goalMinutes: number) => void };
 

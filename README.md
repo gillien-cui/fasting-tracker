@@ -34,12 +34,27 @@ For a standalone APK you keep on the phone, use an EAS build: `npx eas-cli@lates
 ## Develop
 
 ```bash
-npm test           # Jest: duration, goal, streak, stats and CSV rules
+npm test           # Jest, including the plan's automatic acceptance tests
 npm run typecheck
 npm run lint
 ```
 
 - `src/app/` screens (Expo Router): `(tabs)/index.tsx` Today, `(tabs)/history.tsx`, `settings.tsx`, `fast/[id].tsx` edit/add, `end-fast.tsx`.
-- `src/lib/fasts.ts` pure rules and formatting, `csv.ts` backup format, `db.ts` SQLite (expo-sqlite), `store.tsx` app state, `notifications.ts` scheduling.
+- `src/lib/actions.ts` start/end/edit/import rules, `fasts.ts` stats and formatting, `csv.ts` backup format, `db.ts` SQLite (expo-sqlite), `store.tsx` app state, `notifications.ts` scheduling.
 
 CSV backups have the columns `id,started_at,ended_at,goal_minutes,note,status`, with times in UTC ISO format. Importing matches fasts by id, so importing the same file twice doesn't create duplicates.
+
+## Acceptance tests
+
+v1 is done when all 24 cases in the plan pass. The automatic ones (T4–T15, T17–T19 and the data part of T24) live in `src/lib/__tests__/acceptance.test.ts`, named by ID, and run in the America/New_York time zone so daylight saving is covered. Check these by hand on an Android phone:
+
+- **T1** Start a 16 h fast: ring at 0%, start time and goal-reached time shown.
+- **T2** Close the app for 2 h and reopen: elapsed time moved on 2 h.
+- **T3** Restart the phone mid-fast: still running, correct elapsed time.
+- **T16** Several fasts across weeks: grouped by week, newest first, Met/Missed shown.
+- **T20** Calendar: met days filled, missed days outlined, today marked.
+- **T21** Reach the goal with the app closed: one notification.
+- **T22** Leave a fast running 24 h past its goal: "Still fasting?" arrives daily; End opens the end-time screen, Keep going dismisses it.
+- **T23** End a fast early, or turn alerts off in Settings: no goal or reminder alerts for it.
+- **T24** Export CSV, clear all data, import the file: history and stats look exactly as before.
+- Works in airplane mode, and the APK installs and runs.
