@@ -160,6 +160,18 @@ export default function SettingsScreen() {
 
       <Text style={[styles.section, { color: theme.muted }]}>Display</Text>
       <View style={card}>
+        <Row label="Appearance" theme={theme}>
+          <Segmented
+            theme={theme}
+            value={settings.appearance}
+            onChange={(v) => updateSettings({ appearance: v })}
+            options={[
+              { label: 'Dark', value: 'dark' as const },
+              { label: 'Light', value: 'light' as const },
+              { label: 'Auto', value: 'system' as const },
+            ]}
+          />
+        </Row>
         <Row label="Week starts on" theme={theme}>
           <Segmented
             theme={theme}

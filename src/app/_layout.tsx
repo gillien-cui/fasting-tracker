@@ -37,26 +37,35 @@ function NotificationResponses() {
   return null;
 }
 
-export default function RootLayout() {
+/** The navigation stack, colored by the theme chosen in Settings. */
+function AppStack() {
   const theme = useTheme();
+  return (
+    <>
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
+      {Platform.OS !== 'web' && <NotificationResponses />}
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.text,
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: theme.background },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="fast/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="end-fast" options={{ presentation: 'modal', title: 'End fast' }} />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
   return (
     <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrate}>
       <StoreProvider>
-        <StatusBar style="auto" />
-        {Platform.OS !== 'web' && <NotificationResponses />}
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: theme.background },
-            headerTintColor: theme.text,
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: theme.background },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-          <Stack.Screen name="fast/[id]" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="end-fast" options={{ presentation: 'modal', title: 'End fast' }} />
-        </Stack>
+        <AppStack />
       </StoreProvider>
     </SQLiteProvider>
   );

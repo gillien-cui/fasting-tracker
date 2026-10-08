@@ -1,5 +1,5 @@
 import { DEFAULT_GOAL_MINUTES, type WeekStart } from './fasts';
-import type { PaletteName } from './theme';
+import type { Appearance, PaletteName } from './theme';
 
 export type Settings = {
   defaultGoalMinutes: number;
@@ -8,6 +8,7 @@ export type Settings = {
   goalNotification: boolean;
   forgottenReminder: boolean;
   theme: PaletteName;
+  appearance: Appearance;
   /** The goal line on the History chart; null follows the default goal. */
   chartGoalMinutes: number | null;
 };
@@ -19,5 +20,6 @@ export const DEFAULT_SETTINGS: Settings = {
   goalNotification: true,
   forgottenReminder: true,
   theme: 'glow',
+  appearance: 'dark',
   chartGoalMinutes: null,
 };
