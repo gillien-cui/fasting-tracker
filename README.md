@@ -27,7 +27,7 @@ Rules: only one fast runs at a time; a fast belongs to the day it ends on; it me
    ```
 3. Scan the QR code in the terminal with Expo Go.
 
-For a standalone APK you keep on the phone, use an EAS build: `npx eas-cli@latest build -p android --profile preview` (needs a free Expo account).
+To install the app itself, download `fasting-tracker.apk` from the [latest release](https://github.com/gillien-cui/fasting-tracker/releases/tag/latest) on your phone and open it (Android will ask you to allow installs from your browser once). GitHub Actions builds it on every push to `main`; pull requests get the APK as a downloadable artifact on their workflow run.
 
 `npm run web` runs it in a browser. Notifications are phone-only.
 
