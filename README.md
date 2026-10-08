@@ -1,12 +1,21 @@
 # Fasting Tracker
 
-A simple intermittent fasting tracker. Start a fast when you finish eating, watch the timer count toward your goal, and end it when you eat again. Finished fasts are saved to a history list with a few stats.
+A simple intermittent fasting tracker for one person. Start a fast in one tap, watch a ring timer fill toward your goal, and end it when you eat. Every fast is kept in a history with a calendar, a streak and averages.
 
-Built with [Expo](https://expo.dev) (React Native, TypeScript), so it runs on Android today and can run on iOS and the web from the same code. Data is stored on the device only.
+Built with [Expo](https://expo.dev) (React Native, TypeScript). It targets Android first; the same code can later ship to iOS and the web. All data stays on the phone.
 
-| Timer | History |
-| --- | --- |
-| ![Timer](docs/fast.png) | ![History](docs/history.png) |
+| Today | History | Settings |
+| --- | --- | --- |
+| ![Today](docs/today.png) | ![History](docs/history.png) | ![Settings](docs/settings.png) |
+
+## Features
+
+- **Today:** start a fast with a goal (13, 16, 18, 20, 24 h or custom), live ring timer with percent of goal and when the goal is reached, adjust the start time if you forgot to tap, end or cancel. When idle it shows the time since your last fast.
+- **History:** current streak, longest fast, 7 and 30-day averages, a month calendar (filled days met the goal), and fasts grouped by week. Tap a fast to edit its times, goal or note, or delete it. Add a missed fast by hand.
+- **Settings** (gear on Today): default goal, week start day, 12/24 h clock, notification toggles, CSV export and import, clear all data.
+- **Notifications:** one when the goal is reached, and a daily "Still fasting?" reminder with End and Keep going buttons once a fast runs 24 h past its goal. End lets you set the real end time.
+
+Rules: only one fast runs at a time; a fast belongs to the day it ends on; it meets its goal when its duration is at least the goal; the streak counts consecutive days with a met fast, ending today or yesterday.
 
 ## Run it on your Android phone
 
@@ -18,14 +27,19 @@ Built with [Expo](https://expo.dev) (React Native, TypeScript), so it runs on An
    ```
 3. Scan the QR code in the terminal with Expo Go.
 
-To run it in a browser instead, use `npm run web`.
+For a standalone APK you keep on the phone, use an EAS build: `npx eas-cli@latest build -p android --profile preview` (needs a free Expo account).
+
+`npm run web` runs it in a browser. Notifications are phone-only.
 
 ## Develop
 
 ```bash
-npm test          # unit tests for duration and stats logic
+npm test           # Jest: duration, goal, streak, stats and CSV rules
 npm run typecheck
 npm run lint
 ```
 
-Screens live in `src/app/` (Expo Router), shared logic in `src/lib/`.
+- `src/app/` screens (Expo Router): `(tabs)/index.tsx` Today, `(tabs)/history.tsx`, `settings.tsx`, `fast/[id].tsx` edit/add, `end-fast.tsx`.
+- `src/lib/fasts.ts` pure rules and formatting, `csv.ts` backup format, `db.ts` SQLite (expo-sqlite), `store.tsx` app state, `notifications.ts` scheduling.
+
+CSV backups have the columns `id,started_at,ended_at,goal_minutes,note,status`, with times in UTC ISO format. Importing matches fasts by id, so importing the same file twice doesn't create duplicates.
