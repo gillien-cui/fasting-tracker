@@ -156,7 +156,7 @@ export function chartBars(fasts: Fast[], range: ChartRange, now: Date = new Date
       const total = [...days.values()].reduce((a, b) => a + b, 0);
       return {
         key: format(month, 'yyyy-MM'),
-        label: format(month, 'MMMMM'),
+        label: format(month, 'MMM'),
         minutes: days.size ? total / days.size : 0,
       };
     });
@@ -170,7 +170,7 @@ export function chartBars(fasts: Fast[], range: ChartRange, now: Date = new Date
   }
   return Array.from({ length: count }, (_, i) => {
     const day = subDays(today, count - 1 - i);
-    const label = range === 'week' ? format(day, 'EEEEE') : format(day, 'd');
+    const label = range === 'week' ? format(day, 'EEE') : format(day, 'MMM d');
     return { key: dayKey(day), label, minutes: totals.get(dayKey(day)) ?? 0 };
   });
 }

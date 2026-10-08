@@ -7,6 +7,7 @@ import { createSqliteRepository } from './db';
 import type { Fast } from './fasts';
 import { requestPermission, syncSchedule } from './notifications';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { ThemeChoiceContext } from './theme';
 
 type Store = {
   loaded: boolean;
@@ -64,6 +65,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [load, apply]);
 
+  const themeChoice = useMemo(
+    () => ({ palette: settings.theme, appearance: settings.appearance }),
+    [settings.theme, settings.appearance],
+  );
+
   const active = all.find((f) => f.status === 'active') ?? null;
 
   const store = useMemo<Store>(() => {
@@ -113,7 +119,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [loaded, all, active, settings, justEnded, dismissJustEnded, deps, reload]);
 
-  return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={store}>
+      <ThemeChoiceContext.Provider value={themeChoice}>{children}</ThemeChoiceContext.Provider>
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): Store {

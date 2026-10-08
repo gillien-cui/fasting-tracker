@@ -5,7 +5,7 @@ import { pickCsv, shareCsv } from '../lib/backup';
 import { confirm, notify } from '../lib/confirm';
 import { requestPermission } from '../lib/notifications';
 import { useStore } from '../lib/store';
-import { useTheme, type Theme } from '../lib/theme';
+import { PALETTES, useTheme, type Theme } from '../lib/theme';
 
 function Segmented<T extends string | number | boolean>({
   options,
@@ -115,8 +115,63 @@ export default function SettingsScreen() {
         <GoalPicker value={settings.defaultGoalMinutes} onChange={(m) => updateSettings({ defaultGoalMinutes: m })} />
       </View>
 
+      <Text style={[styles.section, { color: theme.muted }]}>History chart</Text>
+      <View style={card}>
+        <Row label="Goal line matches default goal" theme={theme} last={settings.chartGoalMinutes === null}>
+          <Switch
+            value={settings.chartGoalMinutes === null}
+            onValueChange={(v) => {
+              updateSettings({ chartGoalMinutes: v ? null : settings.defaultGoalMinutes });
+            }}
+            trackColor={{ true: theme.accent }}
+            thumbColor="#FFFFFF"
+          />
+        </Row>
+        {settings.chartGoalMinutes !== null && (
+          <View style={styles.padded}>
+            <GoalPicker value={settings.chartGoalMinutes} onChange={(m) => updateSettings({ chartGoalMinutes: m })} />
+          </View>
+        )}
+      </View>
+
+      <Text style={[styles.section, { color: theme.muted }]}>Color theme</Text>
+      <View style={[card, styles.padded, styles.swatches]}>
+        {PALETTES.map((p) => {
+          const selected = settings.theme === p.name;
+          return (
+            <Pressable
+              key={p.name}
+              onPress={() => updateSettings({ theme: p.name })}
+              accessibilityRole="button"
+              accessibilityLabel={`${p.label} theme`}
+              accessibilityState={{ selected }}
+              style={styles.swatchItem}
+            >
+              <View style={[styles.swatchRing, { borderColor: selected ? theme.text : 'transparent' }]}>
+                <View style={[styles.swatch, { backgroundColor: p.swatch.ringEnd }]}>
+                  <View style={[styles.swatchHalf, { backgroundColor: p.swatch.ringStart }]} />
+                </View>
+              </View>
+              <Text style={[styles.swatchLabel, { color: selected ? theme.text : theme.muted }]}>{p.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <Text style={[styles.section, { color: theme.muted }]}>Display</Text>
       <View style={card}>
+        <Row label="Appearance" theme={theme}>
+          <Segmented
+            theme={theme}
+            value={settings.appearance}
+            onChange={(v) => updateSettings({ appearance: v })}
+            options={[
+              { label: 'Dark', value: 'dark' as const },
+              { label: 'Light', value: 'light' as const },
+              { label: 'Auto', value: 'system' as const },
+            ]}
+          />
+        </Row>
         <Row label="Week starts on" theme={theme}>
           <Segmented
             theme={theme}
@@ -148,6 +203,7 @@ export default function SettingsScreen() {
             value={settings.goalNotification}
             onValueChange={(v) => toggleNotification('goalNotification', v)}
             trackColor={{ true: theme.accent }}
+            thumbColor="#FFFFFF"
           />
         </Row>
         <Row label="Forgotten-fast reminder" theme={theme} last>
@@ -155,6 +211,7 @@ export default function SettingsScreen() {
             value={settings.forgottenReminder}
             onValueChange={(v) => toggleNotification('forgottenReminder', v)}
             trackColor={{ true: theme.accent }}
+            thumbColor="#FFFFFF"
           />
         </Row>
       </View>
@@ -207,4 +264,10 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: 14, fontWeight: '600' },
   padded: { paddingVertical: 14 },
   hint: { fontSize: 13, marginTop: 6 },
+  swatches: { flexDirection: 'row', justifyContent: 'space-around' },
+  swatchItem: { alignItems: 'center', gap: 6 },
+  swatchRing: { borderWidth: 2, borderRadius: 999, padding: 3 },
+  swatch: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
+  swatchHalf: { position: 'absolute', top: 0, left: 0, width: 40, height: 20 },
+  swatchLabel: { fontSize: 13, fontWeight: '600' },
 });
