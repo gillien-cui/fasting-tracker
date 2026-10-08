@@ -53,7 +53,7 @@ function AppStack() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings', headerBackButtonDisplayMode: 'minimal' }} />
         <Stack.Screen name="fast/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="end-fast" options={{ presentation: 'modal', title: 'End fast' }} />
       </Stack>
