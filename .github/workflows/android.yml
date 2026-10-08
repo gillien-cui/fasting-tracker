@@ -14,8 +14,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -30,16 +30,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
       - run: npm ci
       # Generates android/ from app.json and the config plugins (it isn't committed).
       - run: npx expo prebuild --platform android --no-install
@@ -47,7 +46,7 @@ jobs:
       - run: ./gradlew assembleRelease --no-daemon
         working-directory: android
       - run: cp android/app/build/outputs/apk/release/app-release.apk fasting-tracker.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: fasting-tracker-apk
           path: fasting-tracker.apk
