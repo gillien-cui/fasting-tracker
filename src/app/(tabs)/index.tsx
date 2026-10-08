@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { DateTimeField } from '../../components/DateTimeField';
+import { Celebration } from '../../components/Celebration';
+import { DateTimeField, TimeRow } from '../../components/DateTimeField';
+import { DateTimeSheet } from '../../components/DateTimeSheet';
 import { GoalPicker } from '../../components/GoalPicker';
 import { Ring } from '../../components/Ring';
+import { goalFromReachedAt, timesError } from '../../lib/actions';
 import { confirm } from '../../lib/confirm';
-import { completedFasts, formatClock, formatDayTime, formatDuration, formatGoal, goalReachedAt } from '../../lib/fasts';
+import {
+  completedFasts,
+  formatClock,
+  formatDuration,
+  formatGoal,
+  formatTime,
+  goalReachedAt,
+  shortDay,
+} from '../../lib/fasts';
 import { useStore } from '../../lib/store';
 import { useTheme } from '../../lib/theme';
 
@@ -20,9 +31,20 @@ function useNow(enabled: boolean): Date {
 }
 
 export default function TodayScreen() {
+  const store = useStore();
+  return (
+    <View style={styles.fill}>
+      <TodayContent />
+      {store.justEnded && <Celebration fast={store.justEnded} onDone={store.dismissJustEnded} />}
+    </View>
+  );
+}
+
+function TodayContent() {
   const theme = useTheme();
   const { loaded, active, fasts, settings, startFast, endFast, cancelFast, updateActive } = useStore();
   const [goal, setGoal] = useState<number | null>(null);
+  const [picking, setPicking] = useState<'start' | 'end' | null>(null);
   const now = useNow(true);
 
   if (!loaded) {
@@ -33,6 +55,7 @@ export default function TodayScreen() {
     );
   }
 
+  const clock24 = settings.clock24;
   const nextGoal = goal ?? settings.defaultGoalMinutes;
   const lastFast = completedFasts(fasts)[0];
 
@@ -59,12 +82,31 @@ export default function TodayScreen() {
         <GoalPicker value={nextGoal} onChange={setGoal} />
 
         <Pressable
-          onPress={() => startFast(nextGoal)}
+          onPress={() => setPicking('start')}
           accessibilityRole="button"
           style={({ pressed }) => [styles.primary, { backgroundColor: theme.accent, opacity: pressed ? 0.85 : 1 }]}
         >
           <Text style={[styles.primaryText, { color: theme.accentText }]}>Start {formatGoal(nextGoal)} fast</Text>
         </Pressable>
+
+        <DateTimeSheet
+          visible={picking === 'start'}
+          title="When did you start?"
+          confirmLabel="Start fast"
+          value={now}
+          maximumDate={now}
+          clock24={clock24}
+          validate={(d) => timesError(d, null, new Date())}
+          describe={(d) => {
+            const at = new Date(d.getTime() + nextGoal * 60000);
+            return `Goal reached ${shortDay(at).toLowerCase()} at ${formatTime(at, clock24)}`;
+          }}
+          onCancel={() => setPicking(null)}
+          onConfirm={(d) => {
+            setPicking(null);
+            startFast(nextGoal, d);
+          }}
+        />
       </ScrollView>
     );
   }
@@ -86,35 +128,39 @@ export default function TodayScreen() {
           <Text style={[styles.clock, { color: theme.text }]} accessibilityRole="timer">
             {formatClock(elapsedMs)}
           </Text>
-          <Text style={[styles.small, { color: theme.muted }]}>
-            of {formatGoal(active.goalMinutes)} goal · {Math.floor(progress * 100)}%
+          <Text style={[styles.small, { color: reached ? theme.good : theme.muted }]}>
+            {reached
+              ? `Goal reached · ${Math.floor(progress * 100)}%`
+              : `of ${formatGoal(active.goalMinutes)} goal · ${Math.floor(progress * 100)}%`}
           </Text>
         </Ring>
       </View>
 
-      <View style={styles.meta}>
-        <Text style={[styles.metaText, { color: reached ? theme.good : theme.muted }]}>
-          {reached
-            ? `Goal reached ${formatDuration((now.getTime() - goalAt.getTime()) / 60000)} ago`
-            : `Goal reached at ${formatDayTime(goalAt, settings.clock24, now)}`}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.label, { color: theme.muted }]}>Started (tap to adjust)</Text>
+      <TimeRow>
         <DateTimeField
-          label="Start time"
+          label="Started"
           value={start}
           maximumDate={now}
-          clock24={settings.clock24}
+          clock24={clock24}
+          validate={(d) => timesError(d, null, new Date())}
           onChange={(d) => updateActive({ startedAt: d })}
         />
-        <Text style={[styles.label, { color: theme.muted, marginTop: 8 }]}>Goal</Text>
-        <GoalPicker value={active.goalMinutes} onChange={(m) => updateActive({ goalMinutes: m })} />
-      </View>
+        <DateTimeField
+          label="Goal reached"
+          value={goalAt}
+          minimumDate={start}
+          clock24={clock24}
+          color={reached ? theme.good : undefined}
+          validate={(d) => goalFromReachedAt(start, d).error}
+          describe={(d) => `Goal ${formatGoal(goalFromReachedAt(start, d).goalMinutes)}`}
+          onChange={(d) => updateActive({ goalMinutes: goalFromReachedAt(start, d).goalMinutes })}
+        />
+      </TimeRow>
+
+      <GoalPicker value={active.goalMinutes} onChange={(m) => updateActive({ goalMinutes: m })} />
 
       <Pressable
-        onPress={() => endFast()}
+        onPress={() => setPicking('end')}
         accessibilityRole="button"
         style={({ pressed }) => [styles.primary, { backgroundColor: theme.accent, opacity: pressed ? 0.85 : 1 }]}
       >
@@ -123,20 +169,38 @@ export default function TodayScreen() {
       <Pressable onPress={onCancel} accessibilityRole="button" style={styles.secondary}>
         <Text style={[styles.secondaryText, { color: theme.muted }]}>Cancel fast</Text>
       </Pressable>
+
+      <DateTimeSheet
+        visible={picking === 'end'}
+        title="When did you eat?"
+        confirmLabel="End fast"
+        value={now}
+        minimumDate={start}
+        maximumDate={now}
+        clock24={clock24}
+        validate={(d) => timesError(start, d, new Date())}
+        describe={(d) => {
+          const minutes = (d.getTime() - start.getTime()) / 60000;
+          const met = minutes >= active.goalMinutes;
+          return `${formatDuration(minutes)} fasted · ${met ? 'goal met' : `${formatDuration(active.goalMinutes - minutes)} short`}`;
+        }}
+        onCancel={() => setPicking(null)}
+        onConfirm={(d) => {
+          setPicking(null);
+          endFast(d);
+        }}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 20, gap: 14, paddingBottom: 40 },
   ringWrap: { alignItems: 'center', marginTop: 4 },
   clock: { fontSize: 40, fontWeight: '700', fontVariant: ['tabular-nums'] },
   small: { fontSize: 14 },
-  meta: { alignItems: 'center' },
-  metaText: { fontSize: 15, fontWeight: '500' },
-  card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
   sectionTitle: { fontSize: 17, fontWeight: '600' },
   primary: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 6 },
   primaryText: { fontSize: 18, fontWeight: '700' },

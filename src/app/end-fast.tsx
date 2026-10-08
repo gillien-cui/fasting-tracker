@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { DateTimeField } from '../components/DateTimeField';
+import { DateTimeField, TimeRow } from '../components/DateTimeField';
 import { timesError } from '../lib/actions';
 import { formatDuration, goalReachedAt } from '../lib/fasts';
 import { useStore } from '../lib/store';
@@ -49,7 +49,19 @@ export default function EndFastScreen() {
           ? "Set the time you actually ate. It's set to when your goal was reached; change it if that's not right."
           : 'Set the time you actually ate.'}
       </Text>
-      <DateTimeField label="End time" value={value} onChange={setEnd} clock24={settings.clock24} maximumDate={now} />
+      <TimeRow>
+        <DateTimeField label="Started" value={start} clock24={settings.clock24} />
+        <DateTimeField
+          label="Ended"
+          value={value}
+          onChange={setEnd}
+          clock24={settings.clock24}
+          minimumDate={start}
+          maximumDate={now}
+          validate={(d) => timesError(start, d, new Date())}
+        />
+        <DateTimeField label="Goal at" value={goalReachedAt(active)} clock24={settings.clock24} color={theme.good} />
+      </TimeRow>
       <Text style={[styles.summary, { color: error ? theme.danger : theme.text }]}>
         {error ?? `Fast of ${formatDuration((value.getTime() - start.getTime()) / 60000)}`}
       </Text>

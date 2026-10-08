@@ -7,6 +7,7 @@ import { createSqliteRepository } from './db';
 import type { Fast } from './fasts';
 import { requestPermission, syncSchedule } from './notifications';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { ThemeChoiceContext } from './theme';
 
 type Store = {
   loaded: boolean;
@@ -14,8 +15,11 @@ type Store = {
   fasts: Fast[];
   active: Fast | null;
   settings: Settings;
+  /** The fast that just ended, until its celebration is dismissed. */
+  justEnded: Fast | null;
+  dismissJustEnded: () => void;
   // Each write resolves true when it was saved. Refusals are shown to the person and resolve false.
-  startFast: (goalMinutes?: number) => Promise<boolean>;
+  startFast: (goalMinutes?: number, startedAt?: Date) => Promise<boolean>;
   endFast: (endedAt?: Date) => Promise<boolean>;
   cancelFast: () => Promise<boolean>;
   updateActive: (changes: { startedAt?: Date; goalMinutes?: number }) => Promise<boolean>;
@@ -35,6 +39,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [all, setAll] = useState<Fast[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [justEnded, setJustEnded] = useState<Fast | null>(null);
+  const dismissJustEnded = useCallback(() => setJustEnded(null), []);
 
   const load = useCallback(() => Promise.all([deps.repo.getAll(), deps.repo.getSettings()]), [deps]);
 
@@ -59,6 +65,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [load, apply]);
 
+  const themeChoice = useMemo(
+    () => ({ palette: settings.theme, appearance: settings.appearance }),
+    [settings.theme, settings.appearance],
+  );
+
   const active = all.find((f) => f.status === 'active') ?? null;
 
   const store = useMemo<Store>(() => {
@@ -82,15 +93,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       fasts: all.filter((f) => f.status !== 'cancelled'),
       active,
       settings,
-      startFast: async (goalMinutes) => {
-        const started = await ok(write(() => actions.startFast(deps, goalMinutes)));
+      justEnded,
+      dismissJustEnded,
+      startFast: async (goalMinutes, startedAt) => {
+        const started = await ok(write(() => actions.startFast(deps, goalMinutes, startedAt)));
         if (started && (settings.goalNotification || settings.forgottenReminder)) {
           // Ask once, at the first fast; reschedule if they just allowed it.
           if (await requestPermission()) await reload();
         }
         return started;
       },
-      endFast: (endedAt) => ok(write(() => actions.endFast(deps, endedAt))),
+      endFast: async (endedAt) => {
+        const ended = await write(() => actions.endFast(deps, endedAt));
+        if (ended) setJustEnded(ended);
+        return ended !== null;
+      },
       cancelFast: () => ok(write(() => actions.cancelFast(deps).then(done))),
       updateActive: (changes) => ok(write(() => actions.updateActive(deps, changes))),
       savePastFast: (input) => ok(write(() => actions.savePastFast(deps, input))),
@@ -100,9 +117,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateSettings: (changes) => ok(write(() => deps.repo.saveSettings(changes).then(done))),
       clearAll: () => ok(write(() => actions.clearAll(deps).then(done))),
     };
-  }, [loaded, all, active, settings, deps, reload]);
+  }, [loaded, all, active, settings, justEnded, dismissJustEnded, deps, reload]);
 
-  return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={store}>
+      <ThemeChoiceContext.Provider value={themeChoice}>{children}</ThemeChoiceContext.Provider>
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): Store {

@@ -10,9 +10,9 @@ Built with [Expo](https://expo.dev) (React Native, TypeScript). It targets Andro
 
 ## Features
 
-- **Today:** start a fast with a goal (13, 16, 18, 20, 24 h or custom), live ring timer with percent of goal and when the goal is reached, adjust the start time if you forgot to tap, end or cancel. When idle it shows the time since your last fast.
-- **History:** current streak, longest fast, 7 and 30-day averages, a month calendar (filled days met the goal), and fasts grouped by week. Tap a fast to edit its times, goal or note, or delete it. Add a missed fast by hand.
-- **Settings** (gear on Today): default goal, week start day, 12/24 h clock, notification toggles, CSV export and import, clear all data.
+- **Today:** pick a goal (16, 18, 22 h, or a custom goal up to 7 days), then Start and End each open a wheel picker set to now, so you can log the real time in one tap. A live ring shows progress; start time and goal-reached time sit side by side and can be changed (moving the goal-reached time changes the goal). Ending a fast that met its goal gets a confetti celebration. When idle it shows the time since your last fast.
+- **History:** current streak, longest fast, 7 and 30-day averages, a chart of hours fasted (Week, Month, Year), a month calendar (filled days met the goal, red days missed it), and fasts grouped by week. Tap a fast to edit its times, goal or note, or delete it. Add a missed fast by hand.
+- **Settings** (gear on Today and History): default goal, the History chart's goal line, appearance (dark by default, light or follow the phone), color theme (Glow, Catppuccin, Nord, Dracula), week start day, 24/12 h clock, notification toggles, CSV export and import, clear all data.
 - **Notifications:** one when the goal is reached, and a daily "Still fasting?" reminder with End and Keep going buttons once a fast runs 24 h past its goal. End lets you set the real end time.
 
 Rules: only one fast runs at a time; a fast belongs to the day it ends on; it meets its goal when its duration is at least the goal; the streak counts consecutive days with a met fast, ending today or yesterday.

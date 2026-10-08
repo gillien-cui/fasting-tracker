@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { Link, router } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { HistoryChart } from '../../components/HistoryChart';
 import { MonthCalendar } from '../../components/MonthCalendar';
 import {
   averageMinutes,
@@ -48,6 +49,7 @@ export default function HistoryScreen() {
         <Stat label="7-day avg" value={avg7 === null ? '–' : formatDuration(avg7)} theme={theme} />
         <Stat label="30-day avg" value={avg30 === null ? '–' : formatDuration(avg30)} theme={theme} />
       </View>
+      <HistoryChart fasts={fasts} goalMinutes={settings.chartGoalMinutes ?? settings.defaultGoalMinutes} />
       <MonthCalendar fasts={fasts} weekStartsOn={settings.weekStartsOn} />
       <Link href="/fast/new" asChild>
         <Pressable accessibilityRole="button" style={styles.add}>

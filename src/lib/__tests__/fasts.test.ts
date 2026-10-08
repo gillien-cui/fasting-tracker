@@ -1,5 +1,6 @@
 import {
   averageMinutes,
+  chartBars,
   currentStreak,
   durationMinutes,
   formatClock,
@@ -109,6 +110,40 @@ describe('monthResults', () => {
       at(10, 1),
     );
     expect(Object.fromEntries(results)).toEqual({ '2026-10-02': 'met', '2026-10-04': 'missed' });
+  });
+});
+
+describe('chartBars', () => {
+  const fasts = [fast(at(10, 1, 20), 16), fast(at(10, 2, 2), 4), fast(at(10, 5, 20), 12), fast(at(9, 10, 20), 18)];
+
+  it('sums each of the last 7 days', () => {
+    const bars = chartBars(fasts, 'week', at(10, 8, 12));
+    expect(bars.map((b) => b.key)).toEqual([
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+    ]);
+    expect(bars.map((b) => b.minutes / 60)).toEqual([20, 0, 0, 0, 12, 0, 0]);
+    expect(bars[6].label).toBe('Thu');
+  });
+
+  it('covers the last 30 days by date', () => {
+    const bars = chartBars(fasts, 'month', at(10, 8, 12));
+    expect(bars).toHaveLength(30);
+    expect(bars[0]).toMatchObject({ key: '2026-09-09', label: 'Sep 9' });
+    expect(bars.find((b) => b.key === '2026-09-11')?.minutes).toBe(18 * 60);
+  });
+
+  it('averages each of the last 12 months per day fasted', () => {
+    const bars = chartBars(fasts, 'year', at(10, 8, 12));
+    expect(bars).toHaveLength(12);
+    expect(bars[11]).toMatchObject({ key: '2026-10', label: 'Oct', minutes: 16 * 60 });
+    expect(bars[10]).toMatchObject({ key: '2026-09', minutes: 18 * 60 });
+    expect(bars[0]).toMatchObject({ key: '2025-11', minutes: 0 });
   });
 });
 

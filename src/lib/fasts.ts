@@ -1,10 +1,12 @@
 import {
   addMinutes,
+  addMonths,
   differenceInCalendarDays,
   differenceInMinutes,
   format,
   isSameMonth,
   startOfDay,
+  startOfMonth,
   startOfWeek,
   subDays,
   subWeeks,
@@ -25,7 +27,7 @@ export type Fast = {
 
 export type WeekStart = 0 | 1;
 
-export const GOAL_PRESETS_HOURS = [13, 16, 18, 20, 24];
+export const GOAL_PRESETS_HOURS = [16, 18, 22];
 export const DEFAULT_GOAL_MINUTES = 16 * 60;
 
 export function durationMinutes(fast: Fast, now: Date = new Date()): number {
@@ -132,6 +134,47 @@ export function monthResults(fasts: Fast[], month: Date): Map<string, DayResult>
   return results;
 }
 
+export type ChartRange = 'week' | 'month' | 'year';
+export type ChartBar = { key: string; label: string; minutes: number };
+
+/**
+ * Hours fasted for the chart. Week and month: one bar per day (the last 7 or 30 days), summing the
+ * fasts that ended that day. Year: one bar per month (the last 12), the average per day fasted.
+ */
+export function chartBars(fasts: Fast[], range: ChartRange, now: Date = new Date()): ChartBar[] {
+  const done = completedFasts(fasts);
+  if (range === 'year') {
+    const thisMonth = startOfMonth(now);
+    return Array.from({ length: 12 }, (_, i) => {
+      const month = addMonths(thisMonth, i - 11);
+      const days = new Map<string, number>();
+      for (const f of done) {
+        if (!isSameMonth(fastDay(f), month)) continue;
+        const key = dayKey(fastDay(f));
+        days.set(key, (days.get(key) ?? 0) + durationMinutes(f));
+      }
+      const total = [...days.values()].reduce((a, b) => a + b, 0);
+      return {
+        key: format(month, 'yyyy-MM'),
+        label: format(month, 'MMM'),
+        minutes: days.size ? total / days.size : 0,
+      };
+    });
+  }
+  const count = range === 'week' ? 7 : 30;
+  const today = startOfDay(now);
+  const totals = new Map<string, number>();
+  for (const f of done) {
+    const key = dayKey(fastDay(f));
+    totals.set(key, (totals.get(key) ?? 0) + durationMinutes(f));
+  }
+  return Array.from({ length: count }, (_, i) => {
+    const day = subDays(today, count - 1 - i);
+    const label = range === 'week' ? format(day, 'EEE') : format(day, 'MMM d');
+    return { key: dayKey(day), label, minutes: totals.get(dayKey(day)) ?? 0 };
+  });
+}
+
 /** "16 h 05 m", or "45 m" under an hour. */
 export function formatDuration(minutes: number): string {
   const total = Math.max(0, Math.floor(minutes));
@@ -159,6 +202,15 @@ export function formatClock(ms: number): string {
 
 export function formatTime(date: Date, clock24: boolean): string {
   return format(date, clock24 ? 'HH:mm' : 'h:mm a');
+}
+
+/** "Today", "Yesterday", "Tomorrow" or "Tue Oct 7". */
+export function shortDay(date: Date, now: Date = new Date()): string {
+  const diff = differenceInCalendarDays(date, now);
+  if (diff === 0) return 'Today';
+  if (diff === -1) return 'Yesterday';
+  if (diff === 1) return 'Tomorrow';
+  return format(date, 'EEE MMM d');
 }
 
 /** Time with a weekday when it isn't today, e.g. "Tue 7:30 PM". */
