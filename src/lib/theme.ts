@@ -12,6 +12,7 @@ const light = {
   good: '#2F855A',
   goodSoft: '#9AD3AE',
   danger: '#C53030',
+  dangerSoft: '#F6C9C9',
   track: '#E3E3E0',
 };
 
@@ -27,6 +28,7 @@ const dark: typeof light = {
   good: '#48BB78',
   goodSoft: '#276749',
   danger: '#FC8181',
+  dangerSoft: '#5A2626',
   track: '#2C2C30',
 };
 
