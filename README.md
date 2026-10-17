@@ -11,8 +11,10 @@ Built with [Expo](https://expo.dev) (React Native, TypeScript). It targets Andro
 ## Features
 
 - **Today:** pick a goal (16, 18, 22 h, or a custom goal up to 7 days), then Start and End each open a wheel picker set to now, so you can log the real time in one tap. A live ring shows progress; start time and goal-reached time sit side by side and can be changed (moving the goal-reached time changes the goal). Ending a fast that met its goal gets a confetti celebration. When idle it shows the time since your last fast.
-- **History:** current streak, longest fast, 7 and 30-day averages, a chart of hours fasted (Week, Month, Year), a month calendar (filled days met the goal, red days missed it), and fasts grouped by week. Tap a fast to edit its times, goal or note, or delete it. Add a missed fast by hand.
-- **Settings** (gear on Today and History): default goal, the History chart's goal line, appearance (dark by default, light or follow the phone), color theme (Glow, Catppuccin, Nord, Dracula), week start day, 24/12 h clock, notification toggles, CSV export and import, clear all data.
+- **Swipe** left and right to move between Today and History, or tap the tab bar.
+- **History:** current streak, longest fast, 7 and 30-day averages, a chart of hours fasted (Week, Month, Year), a month calendar (filled days met the goal, red days missed it, today outlined, "9 of 10 goals met" under the month), and fasts grouped by week. Tap a fast to edit its times, goal or note, or delete it. Add a missed fast by hand.
+- **Weight (optional, off by default):** turn it on in Settings or from the card on History. Today gets a "Weight today" row that opens a wheel picker (any past day, one weight per day), and History gets a weight line chart (last 30 days, or monthly averages over a year) after the calendar. Tap a point to change or delete it. kg or lb.
+- **Settings** (gear on Today and History): default goal, the History chart's goal line, weight tracking and unit, appearance (dark by default, light or follow the phone), color theme (Glow, Catppuccin, Nord, Dracula), week start day, 24/12 h clock, notification toggles, CSV export and import, clear all data.
 - **Notifications:** one when the goal is reached, and a daily "Still fasting?" reminder with End and Keep going buttons once a fast runs 24 h past its goal. End lets you set the real end time.
 
 Rules: only one fast runs at a time; a fast belongs to the day it ends on; it meets its goal when its duration is at least the goal; the streak counts consecutive days with a met fast, ending today or yesterday.
@@ -42,7 +44,7 @@ npm run lint
 - `src/app/` screens (Expo Router): `(tabs)/index.tsx` Today, `(tabs)/history.tsx`, `settings.tsx`, `fast/[id].tsx` edit/add, `end-fast.tsx`.
 - `src/lib/actions.ts` start/end/edit/import rules, `fasts.ts` stats and formatting, `csv.ts` backup format, `db.ts` SQLite (expo-sqlite), `store.tsx` app state, `notifications.ts` scheduling.
 
-CSV backups have the columns `id,started_at,ended_at,goal_minutes,note,status`, with times in UTC ISO format. Importing matches fasts by id, so importing the same file twice doesn't create duplicates.
+CSV backups have the columns `id,started_at,ended_at,goal_minutes,note,status`, with times in UTC ISO format. Weights, when there are any, follow under their own header row `day,weight_kg`. Importing matches fasts by id and weights by day, so importing the same file twice doesn't create duplicates.
 
 ## Acceptance tests
 
@@ -52,9 +54,11 @@ v1 is done when all 24 cases in the plan pass. The automatic ones (T4–T15, T17
 - **T2** Close the app for 2 h and reopen: elapsed time moved on 2 h.
 - **T3** Restart the phone mid-fast: still running, correct elapsed time.
 - **T16** Several fasts across weeks: grouped by week, newest first, Met/Missed shown.
-- **T20** Calendar: met days filled, missed days outlined, today marked.
+- **T20** Calendar: met days filled, missed days red, today outlined.
 - **T21** Reach the goal with the app closed: one notification.
 - **T22** Leave a fast running 24 h past its goal: "Still fasting?" arrives daily; End opens the end-time screen, Keep going dismisses it.
 - **T23** End a fast early, or turn alerts off in Settings: no goal or reminder alerts for it.
 - **T24** Export CSV, clear all data, import the file: history and stats look exactly as before.
 - Works in airplane mode, and the APK installs and runs.
+- Swipe between Today and History; taps on buttons and the goal chips still work.
+- Weight: off on a fresh install with the card on History; turn it on, log today's weight, edit it from the chart, switch to lb.

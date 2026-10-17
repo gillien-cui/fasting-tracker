@@ -1,6 +1,8 @@
-import { csvToFasts, fastsToCsv } from './csv';
+import { format } from 'date-fns';
+import { backupToCsv, csvToBackup } from './csv';
 import type { Fast } from './fasts';
 import type { FastRepository } from './repository';
+import { weightError, type WeightEntry } from './weights';
 
 /** A change the rules refuse, with a message fit to show the person. */
 export class FastError extends Error {}
@@ -122,20 +124,37 @@ export async function deleteFast(deps: Deps, id: string): Promise<void> {
   await deps.repo.delete(id);
 }
 
-/** Every fast as CSV, oldest first. The running fast is left out. */
-export async function exportCsv(deps: Deps): Promise<string> {
-  const fasts = (await deps.repo.getAll()).filter((f) => f.status !== 'active').reverse();
-  return fastsToCsv(fasts);
+/** Logs the weight for a day (one per day), replacing what was logged for that day before. */
+export async function saveWeight(deps: Deps, day: Date, kg: number): Promise<WeightEntry> {
+  const entry: WeightEntry = { day: format(day, 'yyyy-MM-dd'), kg };
+  check(weightError(entry.day, kg, nowOf(deps)));
+  await deps.repo.upsertWeights([entry]);
+  return entry;
 }
 
-export type ImportResult = { imported: number; skipped: number };
+export async function deleteWeight(deps: Deps, day: string): Promise<void> {
+  await deps.repo.deleteWeight(day);
+}
 
-/** Reads a CSV backup. Fasts are matched by id, so importing the same file twice changes nothing. */
+/** Every fast as CSV, oldest first, then every weight. The running fast is left out. */
+export async function exportCsv(deps: Deps): Promise<string> {
+  const fasts = (await deps.repo.getAll()).filter((f) => f.status !== 'active').reverse();
+  const weights = (await deps.repo.getWeights()).reverse();
+  return backupToCsv(fasts, weights);
+}
+
+export type ImportResult = { imported: number; weights: number; skipped: number };
+
+/**
+ * Reads a CSV backup. Fasts are matched by id and weights by day, so importing the same file twice
+ * changes nothing.
+ */
 export async function importCsv(deps: Deps, text: string): Promise<ImportResult> {
-  const { fasts, skipped } = csvToFasts(text);
+  const { fasts, weights, skipped } = csvToBackup(text);
   const rows = fasts.filter((f) => f.status !== 'active');
   await deps.repo.upsert(rows);
-  return { imported: rows.length, skipped: skipped + fasts.length - rows.length };
+  await deps.repo.upsertWeights(weights);
+  return { imported: rows.length, weights: weights.length, skipped: skipped + fasts.length - rows.length };
 }
 
 export async function clearAll(deps: Deps): Promise<void> {

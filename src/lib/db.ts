@@ -2,32 +2,43 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Fast } from './fasts';
 import type { FastRepository } from './repository';
 import { DEFAULT_SETTINGS } from './settings';
+import type { WeightEntry } from './weights';
 
 export const DATABASE_NAME = 'fasting.db';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const version = row?.user_version ?? 0;
   if (version >= SCHEMA_VERSION) return;
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS fasts (
-      id TEXT PRIMARY KEY NOT NULL,
-      started_at TEXT NOT NULL,
-      ended_at TEXT,
-      goal_minutes INTEGER NOT NULL,
-      note TEXT,
-      status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'cancelled'))
-    );
-    CREATE INDEX IF NOT EXISTS fasts_started_at ON fasts (started_at);
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY NOT NULL,
-      value TEXT NOT NULL
-    );
-    PRAGMA user_version = ${SCHEMA_VERSION};
-  `);
+  if (version < 1) {
+    await db.execAsync(`
+      PRAGMA journal_mode = WAL;
+      CREATE TABLE IF NOT EXISTS fasts (
+        id TEXT PRIMARY KEY NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        goal_minutes INTEGER NOT NULL,
+        note TEXT,
+        status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'cancelled'))
+      );
+      CREATE INDEX IF NOT EXISTS fasts_started_at ON fasts (started_at);
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
+  }
+  if (version < 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS weights (
+        day TEXT PRIMARY KEY NOT NULL,
+        kg REAL NOT NULL
+      );
+    `);
+  }
+  await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
 type FastRow = {
@@ -67,7 +78,7 @@ export function createSqliteRepository(db: SQLiteDatabase): FastRepository {
         }
       }),
     delete: async (id) => void (await db.runAsync('DELETE FROM fasts WHERE id = ?', id)),
-    clearAll: () => db.execAsync('DELETE FROM fasts; DELETE FROM settings;'),
+    clearAll: () => db.execAsync('DELETE FROM fasts; DELETE FROM weights; DELETE FROM settings;'),
     getSettings: async () => {
       const rows = await db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM settings');
       return { ...DEFAULT_SETTINGS, ...Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)])) };
@@ -78,5 +89,13 @@ export function createSqliteRepository(db: SQLiteDatabase): FastRepository {
           await db.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', key, JSON.stringify(value));
         }
       }),
+    getWeights: () => db.getAllAsync<WeightEntry>('SELECT day, kg FROM weights ORDER BY day DESC'),
+    upsertWeights: (weights) =>
+      db.withTransactionAsync(async () => {
+        for (const w of weights) {
+          await db.runAsync('INSERT OR REPLACE INTO weights (day, kg) VALUES (?, ?)', w.day, w.kg);
+        }
+      }),
+    deleteWeight: async (day) => void (await db.runAsync('DELETE FROM weights WHERE day = ?', day)),
   };
 }

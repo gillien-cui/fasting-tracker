@@ -8,6 +8,7 @@ import type { Fast } from './fasts';
 import { requestPermission, syncSchedule } from './notifications';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { ThemeChoiceContext } from './theme';
+import type { WeightEntry } from './weights';
 
 type Store = {
   loaded: boolean;
@@ -15,6 +16,8 @@ type Store = {
   fasts: Fast[];
   active: Fast | null;
   settings: Settings;
+  /** Logged weights, newest first. */
+  weights: WeightEntry[];
   /** The fast that just ended, until its celebration is dismissed. */
   justEnded: Fast | null;
   dismissJustEnded: () => void;
@@ -25,6 +28,8 @@ type Store = {
   updateActive: (changes: { startedAt?: Date; goalMinutes?: number }) => Promise<boolean>;
   savePastFast: (input: actions.PastFastInput) => Promise<boolean>;
   deleteFast: (id: string) => Promise<boolean>;
+  saveWeight: (day: Date, kg: number) => Promise<boolean>;
+  deleteWeight: (day: string) => Promise<boolean>;
   importCsv: (text: string) => Promise<actions.ImportResult | null>;
   exportCsv: () => Promise<string>;
   updateSettings: (changes: Partial<Settings>) => Promise<boolean>;
@@ -39,14 +44,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [all, setAll] = useState<Fast[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [weights, setWeights] = useState<WeightEntry[]>([]);
   const [justEnded, setJustEnded] = useState<Fast | null>(null);
   const dismissJustEnded = useCallback(() => setJustEnded(null), []);
 
-  const load = useCallback(() => Promise.all([deps.repo.getAll(), deps.repo.getSettings()]), [deps]);
+  const load = useCallback(
+    () => Promise.all([deps.repo.getAll(), deps.repo.getSettings(), deps.repo.getWeights()]),
+    [deps],
+  );
 
-  const apply = useCallback(([nextFasts, nextSettings]: [Fast[], Settings]) => {
+  const apply = useCallback(([nextFasts, nextSettings, nextWeights]: [Fast[], Settings, WeightEntry[]]) => {
     setAll(nextFasts);
     setSettings(nextSettings);
+    setWeights(nextWeights);
     setLoaded(true);
     const nextActive = nextFasts.find((f) => f.status === 'active') ?? null;
     syncSchedule(nextActive, nextSettings).catch((err) => console.warn('Could not schedule notifications', err));
@@ -93,6 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       fasts: all.filter((f) => f.status !== 'cancelled'),
       active,
       settings,
+      weights,
       justEnded,
       dismissJustEnded,
       startFast: async (goalMinutes, startedAt) => {
@@ -112,12 +123,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateActive: (changes) => ok(write(() => actions.updateActive(deps, changes))),
       savePastFast: (input) => ok(write(() => actions.savePastFast(deps, input))),
       deleteFast: (id) => ok(write(() => actions.deleteFast(deps, id).then(done))),
+      saveWeight: (day, kg) => ok(write(() => actions.saveWeight(deps, day, kg))),
+      deleteWeight: (day) => ok(write(() => actions.deleteWeight(deps, day).then(done))),
       importCsv: (text) => write(() => actions.importCsv(deps, text)),
       exportCsv: () => actions.exportCsv(deps),
       updateSettings: (changes) => ok(write(() => deps.repo.saveSettings(changes).then(done))),
       clearAll: () => ok(write(() => actions.clearAll(deps).then(done))),
     };
-  }, [loaded, all, active, settings, justEnded, dismissJustEnded, deps, reload]);
+  }, [loaded, all, active, settings, weights, justEnded, dismissJustEnded, deps, reload]);
 
   return (
     <StoreContext.Provider value={store}>

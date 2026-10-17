@@ -1,5 +1,6 @@
 import { DEFAULT_GOAL_MINUTES, type WeekStart } from './fasts';
 import type { Appearance, PaletteName } from './theme';
+import type { WeightUnit } from './weights';
 
 export type Settings = {
   defaultGoalMinutes: number;
@@ -11,6 +12,11 @@ export type Settings = {
   appearance: Appearance;
   /** The goal line on the History chart; null follows the default goal. */
   chartGoalMinutes: number | null;
+  /** Weight log on Today and a weight chart on History. Off until turned on. */
+  weightTracking: boolean;
+  weightUnit: WeightUnit;
+  /** The "Track your weight too?" card on History was closed. */
+  weightHintDismissed: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,4 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'glow',
   appearance: 'dark',
   chartGoalMinutes: null,
+  weightTracking: false,
+  weightUnit: 'kg',
+  weightHintDismissed: false,
 };

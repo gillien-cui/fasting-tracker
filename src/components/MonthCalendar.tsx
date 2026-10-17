@@ -6,7 +6,7 @@ import { useTheme } from '../lib/theme';
 
 type Props = { fasts: Fast[]; weekStartsOn: WeekStart };
 
-/** Month grid: filled days met the goal, red days missed it, today's date is underlined. */
+/** Month grid: filled days met the goal, red days missed it, today has an accent outline. */
 export function MonthCalendar({ fasts, weekStartsOn }: Props) {
   const theme = useTheme();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
@@ -18,6 +18,7 @@ export function MonthCalendar({ fasts, weekStartsOn }: Props) {
   for (let d = first; d <= last || days.length % 7 !== 0; d = addDays(d, 1)) days.push(d);
   const weekdays = days.slice(0, 7).map((d) => format(d, 'EEEEE'));
   const isCurrentMonth = isSameMonth(month, new Date());
+  const metCount = [...results.values()].filter((r) => r === 'met').length;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -25,7 +26,12 @@ export function MonthCalendar({ fasts, weekStartsOn }: Props) {
         <Pressable onPress={() => setMonth(addMonths(month, -1))} accessibilityLabel="Previous month" hitSlop={12}>
           <Text style={[styles.arrow, { color: theme.accent }]}>‹</Text>
         </Pressable>
-        <Text style={[styles.month, { color: theme.text }]}>{format(month, 'MMMM yyyy')}</Text>
+        <View style={styles.title}>
+          <Text style={[styles.month, { color: theme.text }]}>{format(month, 'MMMM yyyy')}</Text>
+          <Text style={[styles.summary, { color: theme.muted }]}>
+            {results.size ? `${metCount} of ${results.size} goals met` : 'No fasts this month'}
+          </Text>
+        </View>
         <Pressable
           onPress={() => !isCurrentMonth && setMonth(addMonths(month, 1))}
           accessibilityLabel="Next month"
@@ -52,31 +58,18 @@ export function MonthCalendar({ fasts, weekStartsOn }: Props) {
                   styles.day,
                   result === 'met' && { backgroundColor: theme.goodSoft },
                   result === 'missed' && { backgroundColor: theme.dangerSoft },
+                  today && inMonth && { borderWidth: 2, borderColor: theme.accent },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.dayText,
-                    { color: inMonth ? theme.text : 'transparent' },
-                    today && { fontWeight: '800', textDecorationLine: 'underline' },
-                  ]}
-                >
-                  {format(d, 'd')}
-                </Text>
+                {inMonth && (
+                  <Text style={[styles.dayText, { color: theme.text }, today && { fontWeight: '800' }]}>
+                    {format(d, 'd')}
+                  </Text>
+                )}
               </View>
             </View>
           );
         })}
-      </View>
-      <View style={styles.keyRow}>
-        <View style={[styles.keySwatch, { backgroundColor: theme.goodSoft }]} />
-        <Text style={[styles.key, { color: theme.muted }]}>Goal met</Text>
-        <View style={[styles.keySwatch, { backgroundColor: theme.dangerSoft }]} />
-        <Text style={[styles.key, { color: theme.muted }]}>Missed</Text>
-        <Text style={[styles.key, { color: theme.muted, fontWeight: '800', textDecorationLine: 'underline' }]}>
-          {format(new Date(), 'd')}
-        </Text>
-        <Text style={[styles.key, { color: theme.muted }]}>Today</Text>
       </View>
     </View>
   );
@@ -86,13 +79,12 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6 },
   arrow: { fontSize: 26, fontWeight: '600', lineHeight: 28 },
+  title: { alignItems: 'center' },
   month: { fontSize: 16, fontWeight: '700' },
+  summary: { fontSize: 12, marginTop: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3 },
-  weekday: { fontSize: 12, fontWeight: '600' },
+  weekday: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
   day: { width: 34, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   dayText: { fontSize: 14 },
-  keyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  keySwatch: { width: 12, height: 12, borderRadius: 3, marginLeft: 6 },
-  key: { fontSize: 12 },
 });
