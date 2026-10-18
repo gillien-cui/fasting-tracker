@@ -87,9 +87,10 @@ export default function SettingsScreen() {
       const result = await importCsv(text);
       if (!result) return;
       const skipped = result.skipped ? ` ${result.skipped} rows couldn't be read and were skipped.` : '';
+      const weights = result.weights ? ` and ${result.weights} weights` : '';
       notify(
         'Import finished',
-        `Imported ${result.imported} fasts. Fasts already on this phone with the same id were updated.${skipped}`,
+        `Imported ${result.imported} fasts${weights}. Entries already on this phone were updated.${skipped}`,
       );
     } catch (err) {
       notify('Import failed', err instanceof Error ? err.message : String(err));
@@ -99,7 +100,7 @@ export default function SettingsScreen() {
   const onClear = async () => {
     const ok = await confirm(
       'Clear all data?',
-      'This deletes every fast and resets settings. Export a backup first if you might want them back.',
+      'This deletes every fast and weight and resets settings. Export a backup first if you might want them back.',
       'Delete everything',
       true,
     );
@@ -133,6 +134,36 @@ export default function SettingsScreen() {
           </View>
         )}
       </View>
+
+      <Text style={[styles.section, { color: theme.muted }]}>Weight</Text>
+      <View style={card}>
+        <Row label="Track weight" theme={theme} last={!settings.weightTracking}>
+          <Switch
+            value={settings.weightTracking}
+            onValueChange={(v) => {
+              updateSettings({ weightTracking: v });
+            }}
+            trackColor={{ true: theme.accent }}
+            thumbColor="#FFFFFF"
+          />
+        </Row>
+        {settings.weightTracking && (
+          <Row label="Unit" theme={theme} last>
+            <Segmented
+              theme={theme}
+              value={settings.weightUnit}
+              onChange={(v) => updateSettings({ weightUnit: v })}
+              options={[
+                { label: 'kg', value: 'kg' as const },
+                { label: 'lb', value: 'lb' as const },
+              ]}
+            />
+          </Row>
+        )}
+      </View>
+      <Text style={[styles.hint, { color: theme.muted }]}>
+        Adds a weight log on Today and a weight chart on History.
+      </Text>
 
       <Text style={[styles.section, { color: theme.muted }]}>Color theme</Text>
       <View style={[card, styles.padded, styles.swatches]}>
@@ -235,7 +266,7 @@ export default function SettingsScreen() {
           <Row label="Clear all data" theme={theme} color={theme.danger} last />
         </Pressable>
       </View>
-      <Text style={[styles.hint, { color: theme.muted }]}>Your fasts are stored only on this phone.</Text>
+      <Text style={[styles.hint, { color: theme.muted }]}>Your fasts and weights are stored only on this phone.</Text>
     </ScrollView>
   );
 }

@@ -362,7 +362,7 @@ describe('Backup', () => {
     expect(await app.history()).toEqual([]);
     const result = await actions.importCsv(app.deps, csv);
 
-    expect(result).toEqual({ imported: lengths.length + 1, skipped: 0 });
+    expect(result).toEqual({ imported: lengths.length + 1, weights: 0, skipped: 0 });
     expect(await snapshot()).toEqual(before);
   });
 
@@ -384,7 +384,7 @@ describe('Backup', () => {
 
     const withActive = csv + 'x,2026-10-08T10:00:00.000Z,,960,,active\n';
     const other = setup();
-    expect(await actions.importCsv(other.deps, withActive)).toEqual({ imported: 1, skipped: 1 });
+    expect(await actions.importCsv(other.deps, withActive)).toEqual({ imported: 1, weights: 0, skipped: 1 });
     expect(await other.active()).toBeNull();
   });
 });

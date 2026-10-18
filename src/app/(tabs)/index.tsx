@@ -5,6 +5,7 @@ import { DateTimeField, TimeRow } from '../../components/DateTimeField';
 import { DateTimeSheet } from '../../components/DateTimeSheet';
 import { GoalPicker } from '../../components/GoalPicker';
 import { Ring } from '../../components/Ring';
+import { WeightSheet } from '../../components/WeightSheet';
 import { goalFromReachedAt, timesError } from '../../lib/actions';
 import { confirm } from '../../lib/confirm';
 import {
@@ -18,6 +19,7 @@ import {
 } from '../../lib/fasts';
 import { useStore } from '../../lib/store';
 import { useTheme } from '../../lib/theme';
+import { formatWeight, weightOn } from '../../lib/weights';
 
 /** Current time, ticking every second while enabled. */
 function useNow(enabled: boolean): Date {
@@ -28,6 +30,47 @@ function useNow(enabled: boolean): Date {
     return () => clearInterval(id);
   }, [enabled]);
   return now;
+}
+
+/** "Weight today" with a button to log or change it. Only shown while weight tracking is on. */
+function WeightToday() {
+  const theme = useTheme();
+  const { settings, weights, saveWeight, deleteWeight } = useStore();
+  const [open, setOpen] = useState(false);
+  if (!settings.weightTracking) return null;
+  const today = weightOn(weights, new Date());
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={today ? 'Change weight' : 'Log weight'}
+        style={[styles.weight, { backgroundColor: theme.card, borderColor: theme.border }]}
+      >
+        <Text style={[styles.weightLabel, { color: theme.muted }]}>⚖︎ Weight today</Text>
+        <Text style={[styles.weightValue, { color: today ? theme.text : theme.muted }]}>
+          {today ? formatWeight(today.kg, settings.weightUnit) : 'Not logged'}
+        </Text>
+        <View style={[styles.weightButton, { backgroundColor: theme.accentSoft }]}>
+          <Text style={[styles.weightButtonText, { color: theme.accent }]}>{today ? 'Edit' : 'Log'}</Text>
+        </View>
+      </Pressable>
+      <WeightSheet
+        visible={open}
+        unit={settings.weightUnit}
+        weights={weights}
+        onCancel={() => setOpen(false)}
+        onSave={(day, kg) => {
+          setOpen(false);
+          saveWeight(day, kg);
+        }}
+        onDelete={(day) => {
+          setOpen(false);
+          deleteWeight(day);
+        }}
+      />
+    </>
+  );
 }
 
 export default function TodayScreen() {
@@ -88,6 +131,8 @@ function TodayContent() {
         >
           <Text style={[styles.primaryText, { color: theme.accentText }]}>Start {formatGoal(nextGoal)} fast</Text>
         </Pressable>
+
+        <WeightToday />
 
         <DateTimeSheet
           visible={picking === 'start'}
@@ -170,6 +215,8 @@ function TodayContent() {
         <Text style={[styles.secondaryText, { color: theme.muted }]}>Cancel fast</Text>
       </Pressable>
 
+      <WeightToday />
+
       <DateTimeSheet
         visible={picking === 'end'}
         title="When did you eat?"
@@ -206,4 +253,17 @@ const styles = StyleSheet.create({
   primaryText: { fontSize: 18, fontWeight: '700' },
   secondary: { alignItems: 'center', paddingVertical: 8 },
   secondaryText: { fontSize: 15 },
+  weight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  weightLabel: { flex: 1, fontSize: 15 },
+  weightValue: { fontSize: 16, fontWeight: '700' },
+  weightButton: { borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 },
+  weightButtonText: { fontSize: 13, fontWeight: '700' },
 });

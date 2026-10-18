@@ -1,7 +1,10 @@
 import type { Fast, FastStatus } from './fasts';
+import { weightError, type WeightEntry } from './weights';
 
 const COLUMNS = ['id', 'started_at', 'ended_at', 'goal_minutes', 'note', 'status'] as const;
 const STATUSES: FastStatus[] = ['active', 'completed', 'cancelled'];
+/** Weights follow the fasts in the same file, under their own header row. */
+const WEIGHT_COLUMNS = ['day', 'weight_kg'] as const;
 
 function escape(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
@@ -12,6 +15,13 @@ export function fastsToCsv(fasts: Fast[]): string {
     [f.id, f.startedAt, f.endedAt ?? '', String(f.goalMinutes), f.note ?? '', f.status].map(escape).join(','),
   );
   return [COLUMNS.join(','), ...rows].join('\n') + '\n';
+}
+
+/** A full backup: the fasts, then the weights (when there are any) under their own header. */
+export function backupToCsv(fasts: Fast[], weights: WeightEntry[]): string {
+  if (weights.length === 0) return fastsToCsv(fasts);
+  const rows = weights.map((w) => `${w.day},${Math.round(w.kg * 1000) / 1000}`);
+  return fastsToCsv(fasts) + [WEIGHT_COLUMNS.join(','), ...rows].join('\n') + '\n';
 }
 
 /** RFC 4180 style: quoted fields may contain commas, quotes ("") and newlines. */
@@ -54,10 +64,32 @@ export function parseCsvRows(text: string): string[][] {
 }
 
 export type CsvImport = { fasts: Fast[]; skipped: number };
+export type BackupImport = CsvImport & { weights: WeightEntry[] };
+
+const readRows = (text: string) => parseCsvRows(text.replace(/^﻿/, ''));
 
 /** Reads a CSV made by fastsToCsv. Rows that don't make sense are skipped and counted. */
 export function csvToFasts(text: string): CsvImport {
-  const [header, ...rows] = parseCsvRows(text.replace(/^﻿/, ''));
+  return rowsToFasts(readRows(text));
+}
+
+/** Reads a backup made by backupToCsv, or an older one with fasts only. */
+export function csvToBackup(text: string): BackupImport {
+  const rows = readRows(text);
+  const split = rows.findIndex((r) => r[0]?.trim() === WEIGHT_COLUMNS[0] && r[1]?.trim() === WEIGHT_COLUMNS[1]);
+  const { fasts, skipped } = rowsToFasts(split < 0 ? rows : rows.slice(0, split));
+  const weights: WeightEntry[] = [];
+  let skippedWeights = 0;
+  for (const r of split < 0 ? [] : rows.slice(split + 1)) {
+    const day = (r[0] ?? '').trim();
+    const kg = Number((r[1] ?? '').trim());
+    if (weightError(day, kg, null)) skippedWeights++;
+    else weights.push({ day, kg });
+  }
+  return { fasts, weights, skipped: skipped + skippedWeights };
+}
+
+function rowsToFasts([header, ...rows]: string[][]): CsvImport {
   if (!header) throw new Error('The file is empty.');
   const index = Object.fromEntries(COLUMNS.map((c) => [c, header.indexOf(c)]));
   const missing = COLUMNS.filter((c) => c !== 'note' && index[c] < 0);
